@@ -45,7 +45,7 @@
             <option>Blues</option>
         </select>
     </div>
-    <svg id="fretboard" width="800" height="300"></svg>
+    <svg id="fretboard" width="850" height="300"></svg>
 
     <script>
         const strings = ['E', 'B', 'G', 'D', 'A', 'E'];
@@ -79,8 +79,10 @@
         const chord7Select = d3.select("#chord-type");
         //const selectedChord = d3.select("#chord-type").property('value');
         const scaleSelect = d3.select("#scale-select");
-        const width = 800, height = 300, numFrets = 12, numStrings = 6;
-        const fretWidth = width / (numFrets + 1);
+        const width = 850, height = 300, numFrets = 12, numStrings = 6;
+        const svgMargin = 40; // Margen izquierdo
+        const effectiveWidth = width - (svgMargin * 2); // Margen en ambos lados; // Ancho efectivo para el dibujo
+        const fretWidth = effectiveWidth / (numFrets + 1);
         const stringSpacing = height / (numStrings + 1);
 
         const triadColors = [
@@ -107,18 +109,18 @@
             dotFrets.forEach(fret => {
                 if (fret === 12) {
                     svg.append('circle')
-                        .attr('cx', (fret * fretWidth)-30)
+                        .attr('cx', svgMargin +(fret * fretWidth)-30)
                         .attr('cy', height - 8)
                         .attr('r', 8)
                         .attr('fill', '#888');
                     svg.append('circle')
-                        .attr('cx', (fret * fretWidth)-30)
+                        .attr('cx', svgMargin +(fret * fretWidth)-30)
                         .attr('cy', height - 28)
                         .attr('r', 8)
                         .attr('fill', '#888');
                 } else {
                     svg.append('circle')
-                        .attr('cx', (fret * fretWidth)-30)
+                        .attr('cx', svgMargin +(fret * fretWidth)-30)
                         .attr('cy', height - 18)
                         .attr('r', 8)
                         .attr('fill', '#888');
@@ -127,9 +129,9 @@
 
             // Draw thicker first fret line (nut)
             svg.append('line')
-                .attr('x1', 0)
+                .attr('x1', svgMargin)
                 .attr('y1', stringSpacing)
-                .attr('x2', 0)
+                .attr('x2', svgMargin)
                 .attr('y2', height - stringSpacing)
                 .attr('stroke', '#000')
                 .attr('stroke-width', 4);
@@ -137,9 +139,9 @@
             // Draw remaining frets
             for (let i = 1; i <= numFrets; i++) {
                 svg.append('line')
-                    .attr('x1', i * fretWidth)
+                    .attr('x1', svgMargin + i * fretWidth)
                     .attr('y1', stringSpacing)
-                    .attr('x2', i * fretWidth)
+                    .attr('x2', svgMargin + i * fretWidth)
                     .attr('y2', height - stringSpacing)
                     .attr('class', 'fret');
             }
@@ -147,9 +149,9 @@
             // Draw 6 strings with varying thickness
             for (let j = 0; j < numStrings; j++) {
                 svg.append('line')
-                    .attr('x1', 0)
+                    .attr('x1', svgMargin)
                     .attr('y1', (j + 1) * stringSpacing)
-                    .attr('x2', width)
+                    .attr('x2', width - svgMargin)
                     .attr('y2', (j + 1) * stringSpacing)
                     .attr('stroke', '#888')
                     .attr('stroke-width', (6-j) * 0.3);
@@ -235,14 +237,13 @@
                 });
 
                 // Draw connecting lines and notes
-                //if (formationPositions.length === 3) {
                 if (formationPositions.length === formation.mapping.length) {
 
                     for (let i = 0; i < formationPositions.length - 1; i++) {
                         svg.append('line')
-                            .attr('x1', formationPositions[i].fret * fretWidth)
+                            .attr('x1', svgMargin + formationPositions[i].fret * fretWidth)
                             .attr('y1', (formationPositions[i].string + 1) * stringSpacing)
-                            .attr('x2', formationPositions[i+1].fret * fretWidth)
+                            .attr('x2', svgMargin + formationPositions[i+1].fret * fretWidth)
                             .attr('y2', (formationPositions[i+1].string + 1) * stringSpacing)
                             .attr('stroke', color)
                             .attr('stroke-width', 3)
@@ -251,7 +252,7 @@
 
                     formationPositions.forEach(pos => {
                         svg.append('circle')
-                            .attr('cx', pos.fret * fretWidth)
+                            .attr('cx', svgMargin + pos.fret * fretWidth)
                             .attr('cy', (pos.string + 1) * stringSpacing)
                             .attr('r', 15)
                             .attr('fill', color);
@@ -259,7 +260,7 @@
                         const displayText = selectedDisplayType === 'name' ? pos.note : pos.interval;
 
                         svg.append('text')
-                            .attr('x', pos.fret * fretWidth)
+                            .attr('x', svgMargin + pos.fret * fretWidth)
                             .attr('y', (pos.string + 1) * stringSpacing)
                             .attr('text-anchor', 'middle')
                             .attr('dy', 5)
@@ -280,7 +281,7 @@
 
                         if (isScaleNote) {
                             svg.append('circle')
-                                .attr('cx', fret * fretWidth)
+                                .attr('cx', svgMargin + fret * fretWidth)
                                 .attr('cy', (stringIndex + 1) * stringSpacing)
                                 .attr('r', 15)
                                 .attr('fill', '#4ECDC4');
@@ -289,7 +290,7 @@
                             const displayText = selectedDisplayType === 'name' ? note : getIntervalName(intervalValue);
 
                             svg.append('text')
-                                .attr('x', fret * fretWidth)
+                                .attr('x', svgMargin + fret * fretWidth)
                                 .attr('y', (stringIndex + 1) * stringSpacing)
                                 .attr('text-anchor', 'middle')
                                 .attr('dy', 5)

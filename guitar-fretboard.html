@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Guitar Fretboard Custom Triad Explorer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f0f0; }
+        #controls { margin: 20px; display: flex; gap: 20px; }
+        #fretboard { background-color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .fret { stroke: #333; stroke-width: 2; }
+        .note-label { font-size: 12px; fill: white; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <select id="key-select">
+            <option>C</option><option>C#</option><option>D</option><option>D#</option>
+            <option>E</option><option>F</option><option>F#</option><option>G</option>
+            <option>G#</option><option>A</option><option>A#</option><option>B</option>
+        </select>
+        <select id="triad-select">
+            <option>Mayor</option>
+            <option>Menor</option>
+        </select>
+        <select id="scale-select">
+            <option></option>
+            <option>Mayor</option>
+            <option>Menor Natural</option>
+            <option>Pentatónica Mayor</option>
+            <option>Pentatónica Menor</option>
+            <option>Blues</option>
+        </select>
+    </div>
+    <svg id="fretboard" width="800" height="300"></svg>
+
+    <script>
+        const strings = ['E', 'B', 'G', 'D', 'A', 'E'];
+        const chromaticNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const intervals = {
+            'T': 0,  // Tónica
+            '2m': 1, // Segunda menor
+            '2M': 2, // Segunda mayor
+            '3m': 3, // Tercera menor
+            '3M': 4, // Tercera mayor
+            '4J': 5, // Cuarta justa
+            '5J': 7, // Quinta justa
+            '6m': 8, // Sexta menor
+            '6M': 9, // Sexta mayor
+            '7m': 10, // Séptima menor
+            '7M': 11  // Séptima mayor
+        };
+        // Add to existing intervals
+        const scales = {
+            'Mayor': [0, 2, 4, 5, 7, 9, 11],
+            'Menor Natural': [0, 2, 3, 5, 7, 8, 10],
+            'Pentatónica Mayor': [0, 2, 4, 7, 9],
+            'Pentatónica Menor': [0, 3, 5, 7, 10],
+            'Blues': [0, 3, 5, 6, 7, 10]
+        };
+
+
+        const svg = d3.select("#fretboard");
+        const keySelect = d3.select("#key-select");
+        const triadSelect = d3.select("#triad-select");
+        const scaleSelect = d3.select("#scale-select");
+        const width = 800, height = 300, numFrets = 12, numStrings = 6;
+        const fretWidth = width / (numFrets + 1);
+        const stringSpacing = height / (numStrings + 1);
+
+        const triadColors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1',
+            '#FDCB6E', '#6C5CE7', '#A8E6CF'
+        ];
+
+        function drawFretboard() {
+            svg.selectAll("*").remove();
+
+            // Frets and strings
+            for (let i = 0; i <= numFrets; i++) {
+                svg.append('line')
+                    .attr('x1', i * fretWidth)
+                    .attr('y1', 0)
+                    .attr('x2', i * fretWidth)
+                    .attr('y2', height)
+                    .attr('class', 'fret');
+            }
+
+            for (let j = 0; j < numStrings; j++) {
+                svg.append('line')
+                    .attr('x1', 0)
+                    .attr('y1', (j + 1) * stringSpacing)
+                    .attr('x2', width)
+                    .attr('y2', (j + 1) * stringSpacing)
+                    .attr('stroke', '#888');
+            }
+
+            const selectedKey = keySelect.property('value');
+            const selectedTriad = triadSelect.property('value');
+            //const selectedScale = scaleSelect.property('value');
+            const keyIndex = chromaticNotes.indexOf(selectedKey);
+
+            // Triad interval configuration based on triad type
+            const triadIntervals = {
+                'Mayor': ['3M', '5J'],
+                'Menor': ['3m', '5J']
+            }[selectedTriad];
+
+            const formations = [
+                {
+                    name: "Root Position",
+                    mapping: [
+                        {string: 0, interval: 'T'},
+                        {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                        {string: 2, interval: '5J'}
+                    ]
+                },
+                {
+                    name: "Alternative Position",
+                    mapping: [
+                        {string: 0, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                        {string: 1, interval: '5J'},
+                        {string: 2, interval: 'T'}
+                    ]
+                }
+            ];
+
+            formations.forEach((formation, formIndex) => {
+                const color = triadColors[formIndex % triadColors.length];
+                const formationPositions = [];
+
+                formation.mapping.forEach(map => {
+                    let found = false;
+                    for (let fret = 0; fret <= numFrets; fret++) {
+                        const note = getNoteAtPosition(strings[map.string], fret);
+                        const intervalValue = intervals[map.interval];
+                        const expectedNote = chromaticNotes[(keyIndex + intervalValue) % 12];
+
+                        if (note === expectedNote) {
+                            formationPositions.push({
+                                string: map.string,
+                                fret: fret,
+                                interval: map.interval,
+                                note: note
+                            });
+                            found = true;
+                            break;
+                        }
+                    }
+                });
+
+                // Draw connecting lines and notes
+                if (formationPositions.length === 3) {
+                    for (let i = 0; i < formationPositions.length - 1; i++) {
+                        svg.append('line')
+                            .attr('x1', formationPositions[i].fret * fretWidth)
+                            .attr('y1', (formationPositions[i].string + 1) * stringSpacing)
+                            .attr('x2', formationPositions[i+1].fret * fretWidth)
+                            .attr('y2', (formationPositions[i+1].string + 1) * stringSpacing)
+                            .attr('stroke', color)
+                            .attr('stroke-width', 3)
+                            .attr('fill', 'none');
+                    }
+
+                    formationPositions.forEach(pos => {
+                        svg.append('circle')
+                            .attr('cx', pos.fret * fretWidth)
+                            .attr('cy', (pos.string + 1) * stringSpacing)
+                            .attr('r', 15)
+                            .attr('fill', color);
+
+                        svg.append('text')
+                            .attr('x', pos.fret * fretWidth)
+                            .attr('y', (pos.string + 1) * stringSpacing)
+                            .attr('text-anchor', 'middle')
+                            .attr('dy', 5)
+                            .attr('class', 'note-label')
+                            .attr('fill', 'white')
+                            .text(pos.interval);
+                    });
+                }
+            });
+            //Paint scales
+            const selectedScale = document.getElementById('scale-select').value;
+            if(selectedScale !== ''){
+                alert('entra');
+                const scaleIntervals = scales[selectedScale];
+                strings.forEach((openNote, stringIndex) => {
+                    for (let fret = 0; fret <= numFrets; fret++) {
+                        const note = getNoteAtPosition(openNote, fret);
+                        const intervalValue = (chromaticNotes.indexOf(note) - keyIndex + 12) % 12;
+                        const isScaleNote = scaleIntervals.includes(intervalValue);
+
+                        if (isScaleNote) {
+                            svg.append('circle')
+                                .attr('cx', fret * fretWidth)
+                                .attr('cy', (stringIndex + 1) * stringSpacing)
+                                .attr('r', 15)
+                                .attr('fill', '#4ECDC4');
+
+                            svg.append('text')
+                                .attr('x', fret * fretWidth)
+                                .attr('y', (stringIndex + 1) * stringSpacing)
+                                .attr('text-anchor', 'middle')
+                                .attr('dy', 5)
+                                .attr('class', 'note-label')
+                                .attr('fill', 'white')
+                                .text(note);
+                        }
+                    }
+                });
+            }
+        }
+
+        function getNoteAtPosition(openNote, fret) {
+            const startIndex = chromaticNotes.indexOf(openNote);
+            const noteIndex = (startIndex + fret) % 12;
+            return chromaticNotes[noteIndex];
+        }
+
+        drawFretboard();
+        keySelect.on('change', drawFretboard);
+        triadSelect.on('change', drawFretboard);
+        scaleSelect.on('change', drawFretboard);
+    </script>
+</body>
+</html>

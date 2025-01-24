@@ -13,15 +13,29 @@
 </head>
 <body>
     <div id="controls">
+        <p>key-select</p>
         <select id="key-select">
             <option>C</option><option>C#</option><option>D</option><option>D#</option>
             <option>E</option><option>F</option><option>F#</option><option>G</option>
             <option>G#</option><option>A</option><option>A#</option><option>B</option>
         </select>
+        <p>display-type</p>
+        <select id="display-type">
+            <option>name</option>
+            <option>interval</option>
+        </select>
+        <p>triad-select</p>
         <select id="triad-select">
+            <option></option>
             <option>Mayor</option>
             <option>Menor</option>
         </select>
+        <p>chord-type</p>
+        <select id="chord-type">
+            <option></option>
+            <option>Septima menor</option>
+        </select>
+        <p>scale-select</p>
         <select id="scale-select">
             <option></option>
             <option>Mayor</option>
@@ -62,6 +76,8 @@
         const svg = d3.select("#fretboard");
         const keySelect = d3.select("#key-select");
         const triadSelect = d3.select("#triad-select");
+        const chord7Select = d3.select("#chord-type");
+        //const selectedChord = d3.select("#chord-type").property('value');
         const scaleSelect = d3.select("#scale-select");
         const width = 800, height = 300, numFrets = 12, numStrings = 6;
         const fretWidth = width / (numFrets + 1);
@@ -72,31 +88,79 @@
             '#FDCB6E', '#6C5CE7', '#A8E6CF'
         ];
 
+        // Get interval name from its value
+        function getIntervalName(value) {
+            const intervalNames = {
+                0: 'T', 2: '2M', 4: '3M', 5: '4J',
+                7: '5J', 9: '6M', 11: '7M',
+                1: '2m', 3: '3m', 6: '4A',
+                8: '6m', 10: '7m'
+            };
+            return intervalNames[value];
+        }
+
         function drawFretboard() {
             svg.selectAll("*").remove();
 
-            // Frets and strings
-            for (let i = 0; i <= numFrets; i++) {
+             // Draw dots at frets 3, 5, 7, 9, and 12
+            const dotFrets = [3, 5, 7, 9, 12];
+            dotFrets.forEach(fret => {
+                if (fret === 12) {
+                    svg.append('circle')
+                        .attr('cx', (fret * fretWidth)-30)
+                        .attr('cy', height - 8)
+                        .attr('r', 8)
+                        .attr('fill', '#888');
+                    svg.append('circle')
+                        .attr('cx', (fret * fretWidth)-30)
+                        .attr('cy', height - 28)
+                        .attr('r', 8)
+                        .attr('fill', '#888');
+                } else {
+                    svg.append('circle')
+                        .attr('cx', (fret * fretWidth)-30)
+                        .attr('cy', height - 18)
+                        .attr('r', 8)
+                        .attr('fill', '#888');
+                }
+            });
+
+            // Draw thicker first fret line (nut)
+            svg.append('line')
+                .attr('x1', 0)
+                .attr('y1', stringSpacing)
+                .attr('x2', 0)
+                .attr('y2', height - stringSpacing)
+                .attr('stroke', '#000')
+                .attr('stroke-width', 4);
+
+            // Draw remaining frets
+            for (let i = 1; i <= numFrets; i++) {
                 svg.append('line')
                     .attr('x1', i * fretWidth)
-                    .attr('y1', 0)
+                    .attr('y1', stringSpacing)
                     .attr('x2', i * fretWidth)
-                    .attr('y2', height)
+                    .attr('y2', height - stringSpacing)
                     .attr('class', 'fret');
             }
 
+            // Draw 6 strings with varying thickness
             for (let j = 0; j < numStrings; j++) {
                 svg.append('line')
                     .attr('x1', 0)
                     .attr('y1', (j + 1) * stringSpacing)
                     .attr('x2', width)
                     .attr('y2', (j + 1) * stringSpacing)
-                    .attr('stroke', '#888');
+                    .attr('stroke', '#888')
+                    .attr('stroke-width', (6-j) * 0.3);
             }
 
             const selectedKey = keySelect.property('value');
             const selectedTriad = triadSelect.property('value');
-            //const selectedScale = scaleSelect.property('value');
+            //const displayType = d3.select("#display-type");
+            const selectedChord7 = d3.select("#chord-type").property('value');
+            const selectedScale = document.getElementById('scale-select').value;
+            const selectedDisplayType = d3.select("#display-type").property('value');
             const keyIndex = chromaticNotes.indexOf(selectedKey);
 
             // Triad interval configuration based on triad type
@@ -105,25 +169,47 @@
                 'Menor': ['3m', '5J']
             }[selectedTriad];
 
-            const formations = [
-                {
-                    name: "Root Position",
-                    mapping: [
-                        {string: 0, interval: 'T'},
-                        {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
-                        {string: 2, interval: '5J'}
-                    ]
-                },
-                {
-                    name: "Alternative Position",
-                    mapping: [
-                        {string: 0, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
-                        {string: 1, interval: '5J'},
-                        {string: 2, interval: 'T'}
-                    ]
+            let formations = [];
+            if (selectedTriad !== '') {
+                if (selectedChord7 === 'Septima menor') {
+                    formations = [{
+                        name: "Root Position 7th",
+                        mapping: [
+                            {string: 0, interval: 'T'},
+                            {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                            {string: 2, interval: '5J'},
+                            {string: 3, interval: '7m'}
+                        ]
+                    },
+                    {
+                        name: "Alternative Position 7th",
+                        mapping: [
+                            {string: 0, interval: '7m'},
+                            {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                            {string: 2, interval: '5J'},
+                            {string: 3, interval: 'T'}
+                        ]
+                    }];
+                } else {
+                    formations = [{
+                            name: "Root Position",
+                            mapping: [
+                                {string: 0, interval: 'T'},
+                                {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                                {string: 2, interval: '5J'}
+                            ]
+                        },
+                        {
+                            name: "Alternative Position",
+                            mapping: [
+                                {string: 0, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                                {string: 1, interval: '5J'},
+                                {string: 2, interval: 'T'}
+                            ]
+                        }
+                    ];
                 }
-            ];
-
+            }
             formations.forEach((formation, formIndex) => {
                 const color = triadColors[formIndex % triadColors.length];
                 const formationPositions = [];
@@ -149,7 +235,9 @@
                 });
 
                 // Draw connecting lines and notes
-                if (formationPositions.length === 3) {
+                //if (formationPositions.length === 3) {
+                if (formationPositions.length === formation.mapping.length) {
+
                     for (let i = 0; i < formationPositions.length - 1; i++) {
                         svg.append('line')
                             .attr('x1', formationPositions[i].fret * fretWidth)
@@ -168,6 +256,8 @@
                             .attr('r', 15)
                             .attr('fill', color);
 
+                        const displayText = selectedDisplayType === 'name' ? pos.note : pos.interval;
+
                         svg.append('text')
                             .attr('x', pos.fret * fretWidth)
                             .attr('y', (pos.string + 1) * stringSpacing)
@@ -180,9 +270,7 @@
                 }
             });
             //Paint scales
-            const selectedScale = document.getElementById('scale-select').value;
-            if(selectedScale !== ''){
-                alert('entra');
+            if(selectedScale !== '') {
                 const scaleIntervals = scales[selectedScale];
                 strings.forEach((openNote, stringIndex) => {
                     for (let fret = 0; fret <= numFrets; fret++) {
@@ -197,6 +285,9 @@
                                 .attr('r', 15)
                                 .attr('fill', '#4ECDC4');
 
+
+                            const displayText = selectedDisplayType === 'name' ? note : getIntervalName(intervalValue);
+
                             svg.append('text')
                                 .attr('x', fret * fretWidth)
                                 .attr('y', (stringIndex + 1) * stringSpacing)
@@ -204,7 +295,7 @@
                                 .attr('dy', 5)
                                 .attr('class', 'note-label')
                                 .attr('fill', 'white')
-                                .text(note);
+                                .text(displayText);
                         }
                     }
                 });
@@ -220,7 +311,10 @@
         drawFretboard();
         keySelect.on('change', drawFretboard);
         triadSelect.on('change', drawFretboard);
+        d3.select("#chord-type").on('change', drawFretboard);
+        d3.select("#display-type").on('change', drawFretboard);
         scaleSelect.on('change', drawFretboard);
+        //displayType.on('change', drawFretboard);
     </script>
 </body>
 </html>

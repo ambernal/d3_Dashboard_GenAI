@@ -197,7 +197,6 @@
                         groupName: "Posiciones de Séptima",
                         color: '#45B7D1',
                         formations: [{
-                            //name: "Root Position 7th",
                             mapping: [
                                 {string: 0, interval: 'T'},
                                 {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
@@ -206,7 +205,6 @@
                             ]
                         },
                         {
-                            //name: "Alternative Position 7th",
                             mapping: [
                                 {string: 0, interval: '7m'},
                                 {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
@@ -220,7 +218,6 @@
                         groupName: "Tríadas Primera Inversión",
                         color: '#FF6B6B',
                         formations: [{
-                                //name: "Primera Inversión Position I",
                                 mapping: [
                                     {string: 0, interval: 'T'},
                                     {string: 1, interval: '5J'},
@@ -228,7 +225,6 @@
                                 ]
                             },
                             {
-                                //name: "Segunda Inversión Position II",
                                 mapping: [
                                     {string: 1, interval: 'T'},
                                     {string: 2, interval: '5J'},
@@ -236,7 +232,6 @@
                                 ]
                             },
                             {
-                                //name: "Segunda Inversión Position III",
                                 mapping: [
                                     {string: 2, interval: 'T'},
                                     {string: 3, interval: '5J'},
@@ -244,7 +239,6 @@
                                 ]
                             },
                             {
-                                //name: "Segunda Inversión Position IV",
                                 mapping: [
                                     {string: 3, interval: 'T'},
                                     {string: 4, interval: '5J'},
@@ -257,7 +251,6 @@
                         groupName: "Tríadas Segunda Inversión ",
                         color: '#4ECDC4',
                         formations: [{
-                                //name: "Primera Inversión Position I",
                                 mapping: [
                                     {string: 0, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
                                     {string: 1, interval: 'T'},
@@ -265,7 +258,6 @@
                                 ]
                             },
                             {
-                                //name: "Segunda Inversión Position II",
                                 mapping: [
                                     {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
                                     {string: 2, interval: 'T'},
@@ -273,7 +265,6 @@
                                 ]
                             },
                             {
-                                //name: "Segunda Inversión Position III",
                                 mapping: [
                                     {string: 2, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
                                     {string: 3, interval: 'T'},
@@ -281,7 +272,6 @@
                                 ]
                             },
                             {
-                                //name: "Segunda Inversión Position IV",
                                 mapping: [
                                     {string: 3, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
                                     {string: 4, interval: 'T'},
@@ -294,11 +284,12 @@
                 
                     ];
                 }
+            
+            // Crear un mapa para registrar las notas y sus grupos
+            let noteMap = new Map(); // clave: "string-fret", valor: array de grupos
 
-            formation_groups.forEach((group, formIndex) => { 
-                let formationCount = 0; // Contador global para las formaciones               
+            formation_groups.forEach((group) => { 
                 group.formations.forEach(formation => {
-                    formationCount++;
                     const formationPositions = [];
                     formation.mapping.forEach((map, index) => {
                         let found = false;
@@ -380,10 +371,13 @@
                             });
                         }
                     });
-                
-                    // Draw connecting lines and notes
+                    //console.log('Nuevo formation!!');
+                    //console.log('formationPositions->', JSON.stringify(formationPositions, null, 2));
+                    //console.log('formation->', JSON.stringify(formation, null, 2));
+
                     if (formationPositions.length === formation.mapping.length) {
 
+                        // Dibujar solo las líneas
                         for (let i = 0; i < formationPositions.length - 1; i++) {
                             svg.append('line')
                                 .attr('x1', svgMargin + formationPositions[i].fret * fretWidth)
@@ -392,30 +386,67 @@
                                 .attr('y2', (formationPositions[i+1].string + 1) * stringSpacing)
                                 .attr('stroke', group.color)
                                 .attr('stroke-width', 3)
-                                .attr('fill', 'none');
+                                .attr('fill', 'none')
+                                .attr('opacity', 0.7)
+                                .attr('fill', 'none')
+                                .attr('data-group', group.groupName); // Add a data attribute for identification if needed
                         }
-
+                        
                         formationPositions.forEach(pos => {
-                            svg.append('circle')
-                                .attr('cx', svgMargin + pos.fret * fretWidth)
-                                .attr('cy', (pos.string + 1) * stringSpacing)
-                                .attr('r', 15)
-                                .attr('fill', group.color);
-
-                            const displayText = selectedDisplayType === 'name' ? pos.note : pos.interval;
-
-                            svg.append('text')
-                                .attr('x', svgMargin + pos.fret * fretWidth)
-                                .attr('y', (pos.string + 1) * stringSpacing)
-                                .attr('text-anchor', 'middle')
-                                .attr('dy', 5)
-                                .attr('class', 'note-label')
-                                .attr('fill', 'white')
-                                .text(displayText);
+                            //ejemplos de la key: 0-12  1-6 ..
+                            const key = `${pos.string}-${pos.fret}`;
+                            if (!noteMap.has(key)) {
+                                noteMap.set(key, []);
+                            }
+                            noteMap.get(key).push({
+                                group: group,
+                                position: pos
+                            });
                         });
+                            // Print noteMap contents
+                            /*console.log('NoteMap contents:', Array.from(noteMap.entries()).map(([key, value]) => ({
+                                key, 
+                                value: value.map(item => ({
+                                    groupName: item.group.groupName,
+                                    position: item.position
+                                }))
+                            })));
+                            */
+                            //end print
                     }
                 });
-            });//End formation
+            });
+
+            // Dibujar círculos concéntricos para cada nota
+            noteMap.forEach((groupsInfo, key) => {
+                const [string, fret] = key.split('-').map(Number);
+                const pos = groupsInfo[0].position;
+                console.log('string->', JSON.stringify(string, null, 2));
+                console.log('fret->', JSON.stringify(fret, null, 2));
+                console.log('pos->', JSON.stringify(pos, null, 2));
+                 // Dibujar círculos concéntricos
+                 groupsInfo.reverse().forEach((info, index) => {
+                    console.log('info->', JSON.stringify(info, null, 2));
+
+                    svg.append('circle')
+                        .attr('cx', svgMargin + fret * fretWidth)
+                        .attr('cy', (string + 1) * stringSpacing)
+                        .attr('r', 15 - (index * 5))
+                        .attr('fill', info.group.color);
+                });
+
+                // Texto de la nota
+                svg.append('text')
+                    .attr('x', svgMargin + fret * fretWidth)
+                    .attr('y', (string + 1) * stringSpacing)
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', 5)
+                    .attr('class', 'note-label')
+                    .attr('fill', 'white')
+                    .text(selectedDisplayType === 'name' ? pos.note : pos.interval);
+            });
+        //        });
+        //    });//End formation
 
             //Legend
             const legend = d3.select("#legend").select("div").select("div");

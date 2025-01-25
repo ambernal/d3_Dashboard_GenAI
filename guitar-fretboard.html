@@ -9,6 +9,16 @@
         #fretboard { background-color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .fret { stroke: #333; stroke-width: 2; }
         .note-label { font-size: 12px; fill: white; pointer-events: none; }
+        #legend {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -46,6 +56,14 @@
         </select>
     </div>
     <svg id="fretboard" width="850" height="300"></svg>
+    <div id="legend" style="margin-top: 20px; background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <h3 style="margin: 0 0 10px 0; border-bottom: 2px solid #eee; padding-bottom: 5px; width: 100%; text-align: center;">Leyenda</h3>
+            <div style="display: flex; gap: 20px;">
+                <!-- Los grupos se añadirán aquí -->
+            </div>
+        </div>
+     </div>
 
     <script>
         const strings = ['E', 'B', 'G', 'D', 'A', 'E'];
@@ -79,15 +97,16 @@
         const chord7Select = d3.select("#chord-type");
         //const selectedChord = d3.select("#chord-type").property('value');
         const scaleSelect = d3.select("#scale-select");
-        const width = 850, height = 300, numFrets = 12, numStrings = 6;
+        const width = 850, height = 300, numFrets = 14, numStrings = 6;
         const svgMargin = 40; // Margen izquierdo
         const effectiveWidth = width - (svgMargin * 2); // Margen en ambos lados; // Ancho efectivo para el dibujo
         const fretWidth = effectiveWidth / (numFrets + 1);
         const stringSpacing = height / (numStrings + 1);
 
         const triadColors = [
-            '#FF6B6B', '#4ECDC4', '#45B7D1',
-            '#FDCB6E', '#6C5CE7', '#A8E6CF'
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FDCB6E', '#6C5CE7', '#A8E6CF',
+            '#FF9F43', '#10AC84', '#5F27CD', '#FF6B81', '#1DD1A1', '#48DBFB',
+            '#576574', '#341F97', '#8395A7', '#01A3A4'
         ];
 
         // Get interval name from its value
@@ -171,105 +190,254 @@
                 'Menor': ['3m', '5J']
             }[selectedTriad];
 
-            let formations = [];
-            if (selectedTriad !== '') {
+            //let formations = [];
+            let formation_groups = [];
                 if (selectedChord7 === 'Septima menor') {
-                    formations = [{
-                        name: "Root Position 7th",
-                        mapping: [
-                            {string: 0, interval: 'T'},
-                            {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
-                            {string: 2, interval: '5J'},
-                            {string: 3, interval: '7m'}
-                        ]
-                    },
-                    {
-                        name: "Alternative Position 7th",
-                        mapping: [
-                            {string: 0, interval: '7m'},
-                            {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
-                            {string: 2, interval: '5J'},
-                            {string: 3, interval: 'T'}
-                        ]
-                    }];
-                } else {
-                    formations = [{
-                            name: "Root Position",
+                    formation_groups = [{
+                        groupName: "Posiciones de Séptima",
+                        color: '#45B7D1',
+                        formations: [{
+                            //name: "Root Position 7th",
                             mapping: [
                                 {string: 0, interval: 'T'},
                                 {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
-                                {string: 2, interval: '5J'}
+                                {string: 2, interval: '5J'},
+                                {string: 3, interval: '7m'}
                             ]
                         },
                         {
-                            name: "Alternative Position",
+                            //name: "Alternative Position 7th",
                             mapping: [
-                                {string: 0, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
-                                {string: 1, interval: '5J'},
-                                {string: 2, interval: 'T'}
+                                {string: 0, interval: '7m'},
+                                {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                                {string: 2, interval: '5J'},
+                                {string: 3, interval: 'T'}
                             ]
-                        }
+                        }]
+                    }];
+                } else if (selectedTriad !== ''){
+                    formation_groups = [{
+                        groupName: "Tríadas Primera Inversión",
+                        color: '#FF6B6B',
+                        formations: [{
+                                //name: "Primera Inversión Position I",
+                                mapping: [
+                                    {string: 0, interval: 'T'},
+                                    {string: 1, interval: '5J'},
+                                    {string: 2, interval: selectedTriad === 'Mayor' ? '3M' : '3m'}
+                                ]
+                            },
+                            {
+                                //name: "Segunda Inversión Position II",
+                                mapping: [
+                                    {string: 1, interval: 'T'},
+                                    {string: 2, interval: '5J'},
+                                    {string: 3, interval: selectedTriad === 'Mayor' ? '3M' : '3m'}
+                                ]
+                            },
+                            {
+                                //name: "Segunda Inversión Position III",
+                                mapping: [
+                                    {string: 2, interval: 'T'},
+                                    {string: 3, interval: '5J'},
+                                    {string: 4, interval: selectedTriad === 'Mayor' ? '3M' : '3m'}
+                                ]
+                            },
+                            {
+                                //name: "Segunda Inversión Position IV",
+                                mapping: [
+                                    {string: 3, interval: 'T'},
+                                    {string: 4, interval: '5J'},
+                                    {string: 5, interval: selectedTriad === 'Mayor' ? '3M' : '3m'}
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        groupName: "Tríadas Segunda Inversión ",
+                        color: '#4ECDC4',
+                        formations: [{
+                                //name: "Primera Inversión Position I",
+                                mapping: [
+                                    {string: 0, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                                    {string: 1, interval: 'T'},
+                                    {string: 2, interval: '5J'}
+                                ]
+                            },
+                            {
+                                //name: "Segunda Inversión Position II",
+                                mapping: [
+                                    {string: 1, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                                    {string: 2, interval: 'T'},
+                                    {string: 3, interval: '5J'}
+                                ]
+                            },
+                            {
+                                //name: "Segunda Inversión Position III",
+                                mapping: [
+                                    {string: 2, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                                    {string: 3, interval: 'T'},
+                                    {string: 4, interval: '5J'}
+                                ]
+                            },
+                            {
+                                //name: "Segunda Inversión Position IV",
+                                mapping: [
+                                    {string: 3, interval: selectedTriad === 'Mayor' ? '3M' : '3m'},
+                                    {string: 4, interval: 'T'},
+                                    {string: 5, interval: '5J'}
+                                ]
+                            }
+                        ]
+                    }
+                
+                
                     ];
                 }
-            }
-            formations.forEach((formation, formIndex) => {
-                const color = triadColors[formIndex % triadColors.length];
-                const formationPositions = [];
 
-                formation.mapping.forEach(map => {
-                    let found = false;
-                    for (let fret = 0; fret <= numFrets; fret++) {
-                        const note = getNoteAtPosition(strings[map.string], fret);
-                        const intervalValue = intervals[map.interval];
-                        const expectedNote = chromaticNotes[(keyIndex + intervalValue) % 12];
+            formation_groups.forEach((group, formIndex) => { 
+                let formationCount = 0; // Contador global para las formaciones               
+                group.formations.forEach(formation => {
+                    formationCount++;
+                    const formationPositions = [];
+                    formation.mapping.forEach((map, index) => {
+                        let found = false;
+                        let bestFret = 0;
+                        let minDistance = Infinity;
+                        let shouldStartFrom12 = false;
 
-                        if (note === expectedNote) {
+                        // Si es la primera nota, comprobamos si debería empezar desde el 12
+                        if (index === 0) {
+                            for (let fret = 0; fret <= numFrets; fret++) {
+                                const note = getNoteAtPosition(strings[map.string], fret);
+                                const intervalValue = intervals[map.interval];
+                                const expectedNote = chromaticNotes[(keyIndex + intervalValue) % 12];
+
+                                if (note === expectedNote) {
+                                    // Comprobamos las notas siguientes
+                                    let sumDistanceTo1 = 0;
+                                    let sumDistanceTo12 = 0;
+
+                                    formation.mapping.slice(1).forEach(nextMap => {
+                                        // Encontrar las posiciones más cercanas a 1 y a 12 para cada nota siguiente
+                                        let minDistTo1 = Infinity;
+                                        let minDistTo12 = Infinity;
+
+                                        for (let nextFret = 0; nextFret <= numFrets; nextFret++) {
+                                            const nextNote = getNoteAtPosition(strings[nextMap.string], nextFret);
+                                            const nextIntervalValue = intervals[nextMap.interval];
+                                            const nextExpectedNote = chromaticNotes[(keyIndex + nextIntervalValue) % 12];
+
+                                            if (nextNote === nextExpectedNote) {
+                                                minDistTo1 = Math.min(minDistTo1, Math.abs(nextFret - 1));
+                                                minDistTo12 = Math.min(minDistTo12, Math.abs(nextFret - 12));
+                                            }
+                                        }
+                                        sumDistanceTo1 += minDistTo1;
+                                        sumDistanceTo12 += minDistTo12;
+                                    });
+
+                                    if (sumDistanceTo12 < sumDistanceTo1) {
+                                        shouldStartFrom12 = true;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+
+                        for (let fret = 0; fret <= numFrets; fret++) {
+                            const note = getNoteAtPosition(strings[map.string], fret);
+                            const intervalValue = intervals[map.interval];
+                            const expectedNote = chromaticNotes[(keyIndex + intervalValue) % 12];
+
+                            if (note === expectedNote) {
+                                if (index === 0) {
+                                    const selectedFret = shouldStartFrom12 ? 12 : fret;
+                                    formationPositions.push({
+                                        string: map.string,
+                                        fret: selectedFret,
+                                        interval: map.interval,
+                                        note: note
+                                    });
+                                    found = true;
+                                    break;
+                                } else {
+                                    const distance = Math.abs(fret - formationPositions[index - 1].fret);
+                                    if (distance < minDistance) {
+                                        minDistance = distance;
+                                        bestFret = fret;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!found && index > 0) {
                             formationPositions.push({
                                 string: map.string,
-                                fret: fret,
+                                fret: bestFret,
                                 interval: map.interval,
-                                note: note
+                                note: getNoteAtPosition(strings[map.string], bestFret)
                             });
-                            found = true;
-                            break;
                         }
+                    });
+                
+                    // Draw connecting lines and notes
+                    if (formationPositions.length === formation.mapping.length) {
+
+                        for (let i = 0; i < formationPositions.length - 1; i++) {
+                            svg.append('line')
+                                .attr('x1', svgMargin + formationPositions[i].fret * fretWidth)
+                                .attr('y1', (formationPositions[i].string + 1) * stringSpacing)
+                                .attr('x2', svgMargin + formationPositions[i+1].fret * fretWidth)
+                                .attr('y2', (formationPositions[i+1].string + 1) * stringSpacing)
+                                .attr('stroke', group.color)
+                                .attr('stroke-width', 3)
+                                .attr('fill', 'none');
+                        }
+
+                        formationPositions.forEach(pos => {
+                            svg.append('circle')
+                                .attr('cx', svgMargin + pos.fret * fretWidth)
+                                .attr('cy', (pos.string + 1) * stringSpacing)
+                                .attr('r', 15)
+                                .attr('fill', group.color);
+
+                            const displayText = selectedDisplayType === 'name' ? pos.note : pos.interval;
+
+                            svg.append('text')
+                                .attr('x', svgMargin + pos.fret * fretWidth)
+                                .attr('y', (pos.string + 1) * stringSpacing)
+                                .attr('text-anchor', 'middle')
+                                .attr('dy', 5)
+                                .attr('class', 'note-label')
+                                .attr('fill', 'white')
+                                .text(displayText);
+                        });
                     }
                 });
+            });//End formation
 
-                // Draw connecting lines and notes
-                if (formationPositions.length === formation.mapping.length) {
+            //Legend
+            const legend = d3.select("#legend").select("div").select("div");
+            legend.selectAll("*").remove();
 
-                    for (let i = 0; i < formationPositions.length - 1; i++) {
-                        svg.append('line')
-                            .attr('x1', svgMargin + formationPositions[i].fret * fretWidth)
-                            .attr('y1', (formationPositions[i].string + 1) * stringSpacing)
-                            .attr('x2', svgMargin + formationPositions[i+1].fret * fretWidth)
-                            .attr('y2', (formationPositions[i+1].string + 1) * stringSpacing)
-                            .attr('stroke', color)
-                            .attr('stroke-width', 3)
-                            .attr('fill', 'none');
-                    }
+            formation_groups.forEach(group => {
+            const groupDiv = legend.append("div")
+                .style("display", "flex")
+                .style("align-items", "center")
+                .style("gap", "10px");
 
-                    formationPositions.forEach(pos => {
-                        svg.append('circle')
-                            .attr('cx', svgMargin + pos.fret * fretWidth)
-                            .attr('cy', (pos.string + 1) * stringSpacing)
-                            .attr('r', 15)
-                            .attr('fill', color);
+            groupDiv.append("div")
+                .style("width", "15px")
+                .style("height", "15px")
+                .style("border-radius", "50%")
+                .style("background-color", group.color);
 
-                        const displayText = selectedDisplayType === 'name' ? pos.note : pos.interval;
-
-                        svg.append('text')
-                            .attr('x', svgMargin + pos.fret * fretWidth)
-                            .attr('y', (pos.string + 1) * stringSpacing)
-                            .attr('text-anchor', 'middle')
-                            .attr('dy', 5)
-                            .attr('class', 'note-label')
-                            .attr('fill', 'white')
-                            .text(pos.interval);
-                    });
-                }
+            groupDiv.append("div")
+                .style("font-weight", "bold")
+                .text(group.groupName);
             });
+
             //Paint scales
             if(selectedScale !== '') {
                 const scaleIntervals = scales[selectedScale];
